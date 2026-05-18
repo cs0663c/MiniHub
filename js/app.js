@@ -182,20 +182,49 @@ renderNav();
 })();
 
 // ===== 密码管理 =====
+var DEFAULT_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // SHA-256("admin")
+
 function hashPassword(pwd) {
-  var enc = new TextEncoder().encode(pwd);
-  return crypto.subtle.digest('SHA-256', enc).then(function(hash) {
-    var arr = Array.from(new Uint8Array(hash));
-    return arr.map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
-  });
+  try {
+    var enc = new TextEncoder().encode(pwd);
+    return crypto.subtle.digest('SHA-256', enc).then(function(hash) {
+      var arr = Array.from(new Uint8Array(hash));
+      return arr.map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
+    }).catch(function(err) {
+      console.error('crypto.subtle failed:', err);
+      // 回退：简单哈希
+      return simpleHash(pwd);
+    });
+  } catch(e) {
+    console.error('hashPassword error:', e);
+    return Promise.resolve(simpleHash(pwd));
+  }
+}
+
+function simpleHash(s) {
+  var h = 0;
+  for (var i = 0; i < s.length; i++) {
+    h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  }
+  return 'fallback_' + Math.abs(h).toString(16);
 }
 
 function getStoredHash() { return localStorage.getItem('adminPasswordHash'); }
-function isPasswordSet() { return !!getStoredHash(); }
+
+// 首次使用自动设置默认密码 admin
+function ensurePasswordExists() {
+  if (!getStoredHash()) {
+    localStorage.setItem('adminPasswordHash', DEFAULT_HASH);
+  }
+}
+ensurePasswordExists();
 
 function verifyPassword(pwd) {
   var stored = getStoredHash();
-  return stored && hashPassword(pwd).then(function(h) { return h === stored; });
+  // 优先检查默认密码（无论 stored 是什么）
+  if (pwd === 'admin' && stored === DEFAULT_HASH) return Promise.resolve(true);
+  if (!stored) return Promise.resolve(true);
+  return hashPassword(pwd).then(function(h) { return h === stored; });
 }
 
 function setPassword(pwd) {
@@ -210,17 +239,15 @@ function openAdminDialog() {
   document.getElementById('login-error').classList.remove('show');
   document.getElementById('pwd-input').value = '';
 
-  if (isPasswordSet()) {
-    document.getElementById('login-form').style.display = 'block';
-    document.getElementById('admin-panel').style.display = 'none';
-    document.getElementById('login-msg').textContent = '请输入管理密码';
-    setTimeout(function() { document.getElementById('pwd-input').focus(); }, 150);
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('admin-panel').style.display = 'none';
+
+  if (getStoredHash() === DEFAULT_HASH) {
+    document.getElementById('login-msg').textContent = '默认密码：admin（登录后请修改）';
   } else {
-    document.getElementById('login-form').style.display = 'block';
-    document.getElementById('admin-panel').style.display = 'none';
-    document.getElementById('login-msg').textContent = '首次使用，请设置管理密码';
-    setTimeout(function() { document.getElementById('pwd-input').focus(); }, 150);
+    document.getElementById('login-msg').textContent = '请输入管理密码';
   }
+  setTimeout(function() { document.getElementById('pwd-input').focus(); }, 150);
 }
 
 function closeDialog() {
@@ -232,19 +259,25 @@ function doLogin() {
   var pwd = document.getElementById('pwd-input').value;
   if (!pwd) return;
 
-  if (!isPasswordSet()) {
-    setPassword(pwd).then(function() { showAdminPanel(); });
-  } else {
-    verifyPassword(pwd).then(function(ok) {
-      if (ok) {
-        showAdminPanel();
-      } else {
-        document.getElementById('login-error').classList.add('show');
-        document.getElementById('pwd-input').value = '';
-        document.getElementById('pwd-input').focus();
-      }
-    });
-  }
+  verifyPassword(pwd).then(function(ok) {
+    if (ok) {
+      document.getElementById('login-error').classList.remove('show');
+      showAdminPanel();
+    } else {
+      document.getElementById('login-error').classList.add('show');
+      document.getElementById('pwd-input').value = '';
+      document.getElementById('pwd-input').focus();
+    }
+  }).catch(function(err) {
+    console.error('Login error:', err);
+    // 哈希失败时允许 admin 进入
+    if (pwd === 'admin') {
+      showAdminPanel();
+    } else {
+      document.getElementById('login-error').classList.add('show');
+      document.getElementById('login-error').textContent = '登录失败，请重试';
+    }
+  });
 }
 
 function showAdminPanel() {
