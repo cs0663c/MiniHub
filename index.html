@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">我的导航页</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===== 主面板 ===== -->
+<div class="main-card">
+  <div class="page-heading" id="page-heading">我的导航页</div>
+
+  <!-- 网络模式切换 -->
+  <div class="netmode-row">
+    <span class="netmode-label">当前网络：</span>
+    <label class="netmode-toggle" id="netmode-toggle" title="切换内外网访问地址">
+      <input type="checkbox" id="netmode-cb" onchange="toggleNetworkMode()">
+      <span class="netmode-switch"></span>
+      <span class="netmode-text" id="netmode-text">外网</span>
+    </label>
+  </div>
+
+  <div class="clock-area">
+    <div id="time">00:00:00</div>
+    <div id="date"></div>
+  </div>
+
+  <div class="search-area">
+    <div class="search-box">
+      <input id="search-input" type="text" placeholder="输入搜索内容..." onkeydown="if(event.key==='Enter')doSearch()">
+      <button onclick="doSearch()">&#10140;</button>
+    </div>
+    <div class="search-engine">
+      <span class="active" data-engine="baidu" onclick="setEngine(this)">百度</span>
+      <span data-engine="google" onclick="setEngine(this)">Google</span>
+      <span data-engine="bing" onclick="setEngine(this)">Bing</span>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-title">快捷导航</div>
+    <div class="nav-grid" id="nav-grid"></div>
+  </div>
+</div>
+
+<!-- ===== 全局页脚 ===== -->
+<footer class="page-footer">
+  <div class="footer-divider"></div>
+  <div>&copy; <span id="footer-year"></span> <span id="footer-title">我的导航页</span></div>
+  <div id="copyright-info"></div>
+</footer>
+
+<!-- ===== 管理按钮 ===== -->
+<button class="admin-toggle" onclick="openAdminDialog()" title="管理">&#9881;</button>
+
+<!-- ===== 管理弹窗 ===== -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeDialog()">
+  <div class="dialog">
+    <!-- 登录界面 -->
+    <div id="login-form" style="padding:28px;">
+      <h2 style="text-align:center;margin-bottom:24px;">&#128274; 管理员登录</h2>
+      <div class="login-form">
+        <p id="login-msg">请输入管理密码</p>
+        <input id="pwd-input" type="password" placeholder="密码" onkeydown="if(event.key==='Enter')doLogin()">
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="closeDialog()">取消</button>
+          <button class="btn-primary" onclick="doLogin()">登录</button>
+        </div>
+        <div class="login-error" id="login-error">密码错误，请重试</div>
+      </div>
+    </div>
+
+    <!-- 管理面板（登录后显示） -->
+    <div id="admin-panel" style="display:none;flex-direction:column;height:100%;">
+      <div class="dialog-header">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="settings" onclick="switchTab('settings')">页面设置</button>
+          <button class="tab-btn" data-tab="nav" onclick="switchTab('nav')">导航管理</button>
+        </div>
+        <button class="close-btn" onclick="closeDialog()">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div id="tab-settings">
+          <div class="setting-group">
+            <label>主页标题</label>
+            <input id="setting-title" placeholder="我的导航页" maxlength="30">
+          </div>
+          <div class="setting-group">
+            <label>页脚文字</label>
+            <input id="setting-footer" placeholder="我的导航页" maxlength="40">
+          </div>
+          <div class="setting-group">
+            <label>修改管理密码</label>
+            <div class="pwd-change-form">
+              <input id="new-pwd" type="password" placeholder="新密码（至少4位）" maxlength="64">
+              <input id="new-pwd2" type="password" placeholder="确认新密码" maxlength="64">
+              <button class="btn-primary btn-sm" onclick="doChangePassword()">更新密码</button>
+              <span class="pwd-change-msg" id="pwd-change-msg"></span>
+            </div>
+          </div>
+          <p class="tip" style="text-align:left;">修改后点击底部"保存全部"生效</p>
+        </div>
+        <div id="tab-nav" style="display:none;">
+          <div id="edit-list"></div>
+          <button class="add-btn" onclick="addNavItem()">+ 添加导航</button>
+        </div>
+      </div>
+      <div style="padding:0 28px 20px;flex-shrink:0;">
+        <button class="save-all-btn" onclick="saveAll()">保存全部</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 图标选择器弹窗 ===== -->
+<div class="icon-picker-overlay" id="icon-picker-overlay">
+  <div class="icon-picker">
+    <div class="icon-picker-header">
+      <input id="icon-search" type="text" placeholder="搜索图标..." oninput="filterIcons()">
+      <select class="style-select" id="icon-style" onchange="switchIconStyle()">
+        <option value="border-radius">圆角矩形</option>
+        <option value="circle">圆形</option>
+      </select>
+      <button onclick="closeIconPicker()">&times;</button>
+    </div>
+    <div class="icon-picker-body">
+      <div class="icon-picker-grid" id="icon-picker-grid">
+        <div class="icon-picker-loading">加载图标列表中...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
