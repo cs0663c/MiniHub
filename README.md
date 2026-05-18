@@ -99,6 +99,7 @@ docker rm -f minihub
 - 无框架依赖，零构建步骤
 - 数据持久化：localStorage
 - 图标来源：GitHub API + jsDelivr CDN
+- Docker 镜像多平台兼容：`amd64` / `arm64` / `arm/v7`
 
 ## License
 
