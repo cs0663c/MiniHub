@@ -2,9 +2,11 @@ version: "3.8"
 
 services:
   minihub:
-    image: minihub:latest          # 镜像名:标签
-    build: .                       # 构建上下文为当前目录
-    container_name: minihub        # 容器名称
+    # 方式一：拉取 GitHub 自动构建的镜像（推荐，无需本地构建）
+    image: ghcr.io/cs0663c/minihub:latest
+    # 方式二：本地构建（取消注释下面两行，注释掉 image 行）
+    # build: .
+    container_name: minihub
     ports:
-      - "8080:80"                  # 宿主机端口:容器端口
-    restart: unless-stopped        # 异常退出或重启 docker 时自动启动
+      - "8080:80"
+    restart: unless-stopped

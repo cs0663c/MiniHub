@@ -48,17 +48,21 @@ MiniHub/
 
 ## 使用方式
 
-### 方式一：Docker 部署（推荐）
+### 方式一：Docker 部署（推荐，直接拉取镜像）
 
 ```bash
-# 克隆项目
-git clone https://github.com/cs0663c/MiniHub.git
-cd MiniHub
-
-# 构建并启动
-docker compose up -d
+# 无需克隆代码，直接拉取运行
+docker run -d --name minihub -p 8080:80 --restart unless-stopped ghcr.io/cs0663c/minihub:latest
 
 # 访问 http://localhost:8080
+```
+
+或使用 docker-compose：
+
+```bash
+git clone https://github.com/cs0663c/MiniHub.git
+cd MiniHub
+docker compose up -d
 ```
 
 ### 方式二：直接打开
