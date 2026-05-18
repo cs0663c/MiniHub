@@ -73,7 +73,7 @@
     </div>
 
     <!-- 管理面板（登录后显示） -->
-    <div id="admin-panel" style="display:none;flex-direction:column;height:100%;">
+    <div id="admin-panel" style="display:none;flex-direction:column;flex:1;min-height:0;">
       <div class="dialog-header">
         <div class="tabs">
           <button class="tab-btn active" data-tab="settings" onclick="switchTab('settings')">页面设置</button>
@@ -104,10 +104,10 @@
         </div>
         <div id="tab-nav" style="display:none;">
           <div id="edit-list"></div>
-          <button class="add-btn" onclick="addNavItem()">+ 添加导航</button>
         </div>
       </div>
-      <div style="padding:0 28px 20px;flex-shrink:0;">
+      <div class="dialog-footer">
+        <button class="add-btn" onclick="addNavItem()">+ 新建导航</button>
         <button class="save-all-btn" onclick="saveAll()">保存全部</button>
       </div>
     </div>

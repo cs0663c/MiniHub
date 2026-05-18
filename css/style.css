@@ -255,15 +255,6 @@ body::before {
 }
 .nav-item.lan-active { border-color: rgba(255,180,60,0.25); }
 
-/* 编辑面板 - 双URL输入 */
-.nav-edit-urls { display: flex; flex-direction: column; gap: 4px; min-width: 200px; }
-.nav-edit-urls input { width: 100%; }
-.nav-edit-urls .url-label {
-  font-size: 10px;
-  color: rgba(255,255,255,0.25);
-  margin-top: 2px;
-}
-.nav-edit-urls .url-label.lan { color: rgba(255,180,60,0.5); }
 
 /* 密码修改表单 */
 .pwd-change-form {
@@ -337,9 +328,9 @@ body::before {
   background: #1e1e30;
   border: 1px solid rgba(255,255,255,0.15);
   border-radius: 20px;
-  width: 820px;
-  max-width: 95vw;
-  max-height: 90vh;
+  width: 940px;
+  max-width: 96vw;
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -377,10 +368,19 @@ body::before {
 }
 .dialog-header .close-btn:hover { color: #fff; }
 .dialog-body {
-  padding: 24px 28px 28px;
+  padding: 20px 28px 12px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
+
+.dialog-footer {
+  display: flex;
+  gap: 12px;
+  padding: 0 28px 20px;
+  flex-shrink: 0;
+}
+.dialog-footer button { flex: 1; }
 
 /* 登录表单 */
 .login-form { text-align: center; padding: 20px 0 10px; }
@@ -462,7 +462,15 @@ body::before {
 }
 .nav-edit-item input:focus { border-color: rgba(130,130,255,0.5); }
 .nav-edit-item input.name-input { flex: 1; min-width: 100px; }
-.nav-edit-item input.url-input { width: 100%; }
+.nav-edit-item input.url-input { flex: 1; min-width: 140px; }
+
+/* 编辑面板 - 双URL并排 */
+.nav-edit-urls { display: flex; gap: 6px; align-items: flex-start; flex: 2; min-width: 260px; }
+.nav-edit-urls .url-column { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.nav-edit-urls .url-column input { width: 100%; }
+.nav-edit-urls .url-label { font-size: 10px; color: rgba(255,255,255,0.25); white-space: nowrap; }
+.nav-edit-urls .url-label.lan { color: rgba(255,180,60,0.5); }
+
 .nav-edit-item .icon-btn {
   background: rgba(130,130,255,0.12);
   border: 1px solid rgba(130,130,255,0.2);
@@ -637,17 +645,7 @@ body::before {
   margin-top: 8px;
 }
 
-.btn-row-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-}
-.btn-row-actions button { flex: 1; }
-
 .save-all-btn {
-  display: block;
-  width: 100%;
-  margin-top: 16px;
   padding: 12px;
   background: linear-gradient(135deg, #667eea, #764ba2);
   border: none;
@@ -660,10 +658,7 @@ body::before {
 .save-all-btn:hover { opacity: 0.85; }
 
 .add-btn {
-  display: block;
-  width: 100%;
-  margin-top: 16px;
-  padding: 10px;
+  padding: 12px;
   background: rgba(130,130,255,0.12);
   border: 1px dashed rgba(130,130,255,0.3);
   border-radius: 12px;

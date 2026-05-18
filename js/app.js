@@ -330,28 +330,39 @@ function renderEditList() {
     (function(idx) { nameInput.onchange = function() { editItems[idx].name = this.value; }; })(i);
     row.appendChild(nameInput);
 
-    // URL 容器（双输入）
+    // URL 容器（双列并排）
     var urlContainer = document.createElement('div');
     urlContainer.className = 'nav-edit-urls';
 
+    // 外网地址列
+    var col1 = document.createElement('div');
+    col1.className = 'url-column';
     var urlInput = document.createElement('input');
     urlInput.className = 'url-input';
     urlInput.value = item.url;
     urlInput.placeholder = '外网地址 (https://...)';
     (function(idx) { urlInput.onchange = function() { editItems[idx].url = this.value; }; })(i);
-    urlContainer.appendChild(urlInput);
+    col1.appendChild(urlInput);
+    var label1 = document.createElement('span');
+    label1.className = 'url-label';
+    label1.textContent = '外网';
+    col1.appendChild(label1);
+    urlContainer.appendChild(col1);
 
+    // 内网地址列
+    var col2 = document.createElement('div');
+    col2.className = 'url-column';
     var lanInput = document.createElement('input');
     lanInput.className = 'url-input';
     lanInput.value = item.lanUrl || '';
-    lanInput.placeholder = '内网地址 (可选, 如 192.168.1.100:8080)';
+    lanInput.placeholder = '内网地址 (可选)';
     (function(idx) { lanInput.onchange = function() { editItems[idx].lanUrl = this.value; }; })(i);
-    urlContainer.appendChild(lanInput);
-
-    var lanLabel = document.createElement('span');
-    lanLabel.className = 'url-label lan';
-    lanLabel.textContent = '内网地址留空则该导航不参与内外网切换';
-    urlContainer.appendChild(lanLabel);
+    col2.appendChild(lanInput);
+    var label2 = document.createElement('span');
+    label2.className = 'url-label lan';
+    label2.textContent = '内网（可选）';
+    col2.appendChild(label2);
+    urlContainer.appendChild(col2);
 
     row.appendChild(urlContainer);
 
@@ -368,6 +379,7 @@ function renderEditList() {
 
 function addNavItem() {
   editItems.push({ name: '', url: 'https://', icon: '🔗', lanUrl: '' });
+  switchTab('nav');
   renderEditList();
 }
 
