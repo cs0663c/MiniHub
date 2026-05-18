@@ -1,7 +1,10 @@
+version: "3.8"
+
 services:
   minihub:
-    build: .
-    container_name: minihub
+    image: minihub:latest          # 镜像名:标签
+    build: .                       # 构建上下文为当前目录
+    container_name: minihub        # 容器名称
     ports:
-      - "8080:80"
-    restart: unless-stopped
+      - "8080:80"                  # 宿主机端口:容器端口
+    restart: unless-stopped        # 异常退出或重启 docker 时自动启动

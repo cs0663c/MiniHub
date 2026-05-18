@@ -48,9 +48,46 @@ MiniHub/
 
 ## 使用方式
 
-1. 克隆仓库到本地
-2. 直接用浏览器打开 `index.html`
-3. 或部署到任意静态服务器（Nginx / Apache / GitHub Pages）
+### 方式一：Docker 部署（推荐）
+
+```bash
+# 克隆项目
+git clone https://github.com/cs0663c/MiniHub.git
+cd MiniHub
+
+# 构建并启动
+docker compose up -d
+
+# 访问 http://localhost:8080
+```
+
+### 方式二：直接打开
+
+直接用浏览器打开 `index.html` 即可使用。
+
+### 方式三：静态服务器
+
+部署到任意静态服务器（Nginx / Apache / GitHub Pages）。
+
+<details>
+<summary>手动 Docker 命令</summary>
+
+```bash
+# 构建镜像
+docker build -t minihub:latest .
+
+# 运行容器
+docker run -d --name minihub -p 8080:80 --restart unless-stopped minihub:latest
+
+# 查看日志
+docker logs minihub
+
+# 停止/启动/删除
+docker stop minihub
+docker start minihub
+docker rm -f minihub
+```
+</details>
 
 ## 技术栈
 
