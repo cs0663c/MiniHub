@@ -357,14 +357,26 @@ body::before {
   background: rgba(255,255,255,0.08);
 }
 .dialog-header .tab-btn:hover { color: #fff; }
-.dialog-header .close-btn {
+.dialog-header .logout-btn {
   margin-left: auto;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.4);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.dialog-header .logout-btn:hover { color: #f66; border-color: rgba(255,100,100,0.4); }
+.dialog-header .close-btn {
   background: transparent;
   border: none;
   color: rgba(255,255,255,0.4);
   font-size: 26px;
   cursor: pointer;
   line-height: 1;
+  margin-left: 4px;
 }
 .dialog-header .close-btn:hover { color: #fff; }
 .dialog-body {

@@ -234,7 +234,9 @@ function openAdminDialog() {
     // 已登录直接进管理面板
     showAdminPanel();
   } else {
-    document.getElementById('login-msg').textContent = '默认账号：admin@localhost / admin';
+    document.getElementById('login-msg').textContent = '请输入账号密码';
+    // 隐藏注册表单
+    hideRegisterForm();
     setTimeout(function() {
       var el = document.getElementById('email-input');
       if (el) el.focus();
@@ -244,6 +246,71 @@ function openAdminDialog() {
 
 function closeDialog() {
   document.getElementById('overlay').classList.remove('show');
+}
+
+// ===== 退出 =====
+function doLogout() {
+  API.logout();
+  closeDialog();
+  // 清除内存数据，回到离线默认
+  navItems = DEFAULT_NAV.map(function(item) {
+    return { name: item.name, url: item.url, icon: item.icon, lanUrl: item.lanUrl || '' };
+  });
+  settings = { title: '我的导航页', footer: '我的导航页', networkMode: 'wan' };
+  serverIconCache = null;
+  applySettings();
+  renderNav();
+}
+
+// ===== 注册表单切换 =====
+function showRegisterForm() {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('register-form').style.display = 'block';
+  document.getElementById('reg-email').value = '';
+  document.getElementById('reg-pwd').value = '';
+  document.getElementById('register-error').style.display = 'none';
+}
+
+function hideRegisterForm() {
+  document.getElementById('register-form').style.display = 'none';
+  document.getElementById('login-form').style.display = 'block';
+}
+
+function doRegister() {
+  var email = document.getElementById('reg-email').value.trim();
+  var pwd = document.getElementById('reg-pwd').value;
+  var errEl = document.getElementById('register-error');
+
+  if (!email || !pwd) {
+    errEl.textContent = '请填写邮箱和密码';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (pwd.length < 4) {
+    errEl.textContent = '密码至少4位';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  API.register(email, pwd).then(function(data) {
+    API.setToken(data.token);
+    errEl.style.display = 'none';
+    return API.getData();
+  }).then(function(data) {
+    if (data.settings && Object.keys(data.settings).length > 0) {
+      settings.title = data.settings.title || settings.title;
+      settings.footer = data.settings.footer || settings.footer;
+      settings.networkMode = data.settings.networkMode || settings.networkMode;
+    }
+    if (data.navItems && data.navItems.length > 0) navItems = data.navItems;
+    if (data.iconCache) serverIconCache = data.iconCache;
+    applySettings();
+    renderNav();
+    showAdminPanel();
+  }).catch(function(err) {
+    errEl.textContent = err.message || '注册失败';
+    errEl.style.display = 'block';
+  });
 }
 
 // ===== 登录 =====
@@ -527,6 +594,64 @@ function doChangePassword() {
     setTimeout(function() { msgEl.textContent = ''; msgEl.className = 'pwd-change-msg'; }, 3000);
   }).catch(function(err) {
     msgEl.textContent = err.message || '密码修改失败';
+    msgEl.className = 'pwd-change-msg err';
+  });
+}
+
+// ===== 修改邮箱 =====
+function doChangeEmail() {
+  var pwd = document.getElementById('email-pwd').value;
+  var newEmail = document.getElementById('new-email').value.trim();
+  var msgEl = document.getElementById('email-change-msg');
+
+  if (!pwd || !newEmail) {
+    msgEl.textContent = '请填写密码和新邮箱';
+    msgEl.className = 'pwd-change-msg err';
+    return;
+  }
+  if (newEmail.indexOf('@') === -1) {
+    msgEl.textContent = '请输入有效的邮箱';
+    msgEl.className = 'pwd-change-msg err';
+    return;
+  }
+
+  API.changeEmail(pwd, newEmail).then(function(data) {
+    msgEl.textContent = '邮箱已更新：' + data.email;
+    msgEl.className = 'pwd-change-msg ok';
+    document.getElementById('email-pwd').value = '';
+    document.getElementById('new-email').value = '';
+    setTimeout(function() { msgEl.textContent = ''; msgEl.className = 'pwd-change-msg'; }, 4000);
+  }).catch(function(err) {
+    msgEl.textContent = err.message || '修改失败';
+    msgEl.className = 'pwd-change-msg err';
+  });
+}
+
+// ===== 创建子账户 =====
+function doCreateUser() {
+  var email = document.getElementById('new-user-email').value.trim();
+  var pwd = document.getElementById('new-user-pwd').value;
+  var msgEl = document.getElementById('create-user-msg');
+
+  if (!email || !pwd) {
+    msgEl.textContent = '请填写邮箱和密码';
+    msgEl.className = 'pwd-change-msg err';
+    return;
+  }
+  if (pwd.length < 4) {
+    msgEl.textContent = '密码至少4位';
+    msgEl.className = 'pwd-change-msg err';
+    return;
+  }
+
+  API.createUser(email, pwd).then(function(data) {
+    msgEl.textContent = '账户已创建：' + data.user.email;
+    msgEl.className = 'pwd-change-msg ok';
+    document.getElementById('new-user-email').value = '';
+    document.getElementById('new-user-pwd').value = '';
+    setTimeout(function() { msgEl.textContent = ''; msgEl.className = 'pwd-change-msg'; }, 4000);
+  }).catch(function(err) {
+    msgEl.textContent = err.message || '创建失败';
     msgEl.className = 'pwd-change-msg err';
   });
 }

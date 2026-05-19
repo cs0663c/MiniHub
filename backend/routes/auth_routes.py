@@ -105,3 +105,67 @@ def change_password():
     )
     db.commit()
     return jsonify({'ok': True})
+
+
+@auth_bp.route('/email', methods=['PUT'])
+@require_auth
+def change_email():
+    data = request.get_json(silent=True) or {}
+    password = data.get('password', '')
+    new_email = (data.get('new_email') or '').strip().lower()
+
+    if not password or not new_email:
+        return jsonify({'error': '请提供密码和新邮箱'}), 400
+    if '@' not in new_email:
+        return jsonify({'error': '请输入有效的邮箱'}), 400
+
+    db = get_db()
+    user = db.execute(
+        "SELECT password_hash FROM users WHERE id = ?",
+        (g.user['id'],)
+    ).fetchone()
+
+    if not check_password(password, user['password_hash']):
+        return jsonify({'error': '密码错误'}), 403
+
+    existing = db.execute("SELECT id FROM users WHERE email = ? AND id != ?", (new_email, g.user['id'])).fetchone()
+    if existing:
+        return jsonify({'error': '该邮箱已被使用'}), 409
+
+    db.execute("UPDATE users SET email = ? WHERE id = ?", (new_email, g.user['id']))
+    db.commit()
+    return jsonify({'ok': True, 'email': new_email})
+
+
+@auth_bp.route('/users', methods=['POST'])
+@require_auth
+def create_user():
+    if not g.user.get('is_admin'):
+        return jsonify({'error': '仅管理员可创建用户'}), 403
+
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password', '')
+
+    if not email or '@' not in email:
+        return jsonify({'error': '请输入有效的邮箱'}), 400
+    if len(password) < 4:
+        return jsonify({'error': '密码至少4位'}), 400
+
+    db = get_db()
+    existing = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+    if existing:
+        return jsonify({'error': '该邮箱已存在'}), 409
+
+    pw_hash = hash_password(password)
+    db.execute(
+        "INSERT INTO users (email, password_hash, is_admin) VALUES (?, ?, 0)",
+        (email, pw_hash)
+    )
+    user_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+    db.execute(
+        "INSERT INTO user_data (user_id, settings, nav_items) VALUES (?, '{}', '[]')",
+        (user_id,)
+    )
+    db.commit()
+    return jsonify({'ok': True, 'user': {'id': user_id, 'email': email}}), 201

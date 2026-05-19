@@ -64,6 +64,22 @@ var API = (function() {
                 body: JSON.stringify({ old_password: oldPwd, new_password: newPwd })
             });
         },
+        changeEmail: function(password, newEmail) {
+            return fetchJSON(BASE + '/auth/email', {
+                method: 'PUT',
+                body: JSON.stringify({ password: password, new_email: newEmail })
+            });
+        },
+        createUser: function(email, password) {
+            return fetchJSON(BASE + '/auth/users', {
+                method: 'POST',
+                body: JSON.stringify({ email: email, password: password })
+            });
+        },
+        logout: function() {
+            setToken(null);
+            return Promise.resolve();
+        },
 
         // 数据
         getData: function() {
