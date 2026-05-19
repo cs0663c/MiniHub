@@ -396,6 +396,8 @@ body::before {
   outline: none;
   transition: border-color 0.3s;
   text-align: center;
+  display: block;
+  margin: 0 auto 10px;
 }
 .login-form input:focus { border-color: rgba(130,130,255,0.5); }
 .login-form .btn-row { display: flex; gap: 12px; margin-top: 20px; justify-content: center; }

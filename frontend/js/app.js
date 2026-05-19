@@ -1,21 +1,8 @@
 // ===== 数据 =====
 var searchEngine = 'baidu';
 
-var settings = JSON.parse(localStorage.getItem('siteSettings')) || {
-  title: '我的导航页',
-  footer: '我的导航页',
-  networkMode: 'wan'
-};
-
-var rawNav = JSON.parse(localStorage.getItem('navItems'));
-if (rawNav) {
-  rawNav.forEach(function(item) {
-    if (item.lanUrl === undefined) item.lanUrl = '';
-    // 清理旧版本可能遗留的 isLan 字段
-    delete item.isLan;
-  });
-}
-var navItems = rawNav || [
+// 默认值（离线或未登录时使用）
+var DEFAULT_NAV = [
   { name: 'GitHub',  url: 'https://github.com',              icon: '🐙', lanUrl: '' },
   { name: '百度',    url: 'https://baidu.com',               icon: '🔍', lanUrl: '' },
   { name: 'B站',     url: 'https://bilibili.com',            icon: '📺', lanUrl: '' },
@@ -27,6 +14,61 @@ var navItems = rawNav || [
   { name: 'Gmail',   url: 'https://mail.google.com',         icon: '📧', lanUrl: '' },
   { name: 'YouTube', url: 'https://youtube.com',             icon: '🎬', lanUrl: '' },
 ];
+
+var settings = JSON.parse(localStorage.getItem('siteSettings')) || {
+  title: '我的导航页',
+  footer: '我的导航页',
+  networkMode: 'wan'
+};
+
+var navItems = DEFAULT_NAV.map(function(item) {
+  return { name: item.name, url: item.url, icon: item.icon, lanUrl: item.lanUrl || '' };
+});
+
+// 服务端图标缓存（登录后填充）
+var serverIconCache = null;
+
+// ===== 初始化 =====
+(function initApp() {
+  if (API.isLoggedIn()) {
+    loadUserData();
+  } else {
+    // 未登录：尝试从 localStorage 加载旧数据
+    var rawNav = JSON.parse(localStorage.getItem('navItems'));
+    if (rawNav) {
+      rawNav.forEach(function(item) {
+        if (item.lanUrl === undefined) item.lanUrl = '';
+        delete item.isLan;
+      });
+      navItems = rawNav;
+    }
+    applySettings();
+    renderNav();
+  }
+})();
+
+function loadUserData() {
+  API.getData().then(function(data) {
+    if (data.settings && Object.keys(data.settings).length > 0) {
+      // 合并服务端设置（保留客户端默认值作为兜底）
+      settings.title = data.settings.title || settings.title;
+      settings.footer = data.settings.footer || settings.footer;
+      settings.networkMode = data.settings.networkMode || settings.networkMode;
+    }
+    if (data.navItems && data.navItems.length > 0) {
+      navItems = data.navItems;
+    }
+    if (data.iconCache) {
+      serverIconCache = data.iconCache;
+    }
+    applySettings();
+    renderNav();
+  }).catch(function(err) {
+    console.error('加载服务器数据失败:', err);
+    applySettings();
+    renderNav();
+  });
+}
 
 // ===== 安全工具 =====
 function sanitizeUrl(url) {
@@ -44,7 +86,6 @@ function escapeHtml(s) {
   return d.innerHTML;
 }
 
-// 安全创建 icon 内容：返回 DOM 节点
 function createIconNode(icon) {
   if (icon && (icon.indexOf('http://') === 0 || icon.indexOf('https://') === 0)) {
     var img = document.createElement('img');
@@ -56,7 +97,6 @@ function createIconNode(icon) {
   return document.createTextNode(icon || '🔗');
 }
 
-// 获取当前应使用的 URL（根据网络模式）
 function getEffectiveUrl(item) {
   if (settings.networkMode === 'lan' && item.lanUrl && item.lanUrl.trim()) {
     return item.lanUrl.trim();
@@ -72,19 +112,23 @@ function applySettings() {
   document.getElementById('footer-title').textContent = settings.footer;
   document.getElementById('footer-year').textContent = new Date().getFullYear();
 
-  // 网络模式开关
   var cb = document.getElementById('netmode-cb');
   cb.checked = (settings.networkMode === 'lan');
   document.getElementById('netmode-text').textContent = settings.networkMode === 'lan' ? '内网' : '外网';
 }
-applySettings();
 
 // ===== 网络模式切换 =====
 function toggleNetworkMode() {
   var cb = document.getElementById('netmode-cb');
   settings.networkMode = cb.checked ? 'lan' : 'wan';
   document.getElementById('netmode-text').textContent = settings.networkMode === 'lan' ? '内网' : '外网';
-  localStorage.setItem('siteSettings', JSON.stringify(settings));
+
+  // 已登录则同步到服务器，否则回退 localStorage
+  if (API.isLoggedIn()) {
+    API.saveSettings(settings).catch(function() {});
+  } else {
+    localStorage.setItem('siteSettings', JSON.stringify(settings));
+  }
   renderNav();
 }
 
@@ -120,7 +164,6 @@ function doSearch() {
 // ===== 导航渲染 =====
 function renderNav() {
   var grid = document.getElementById('nav-grid');
-  // 清空
   while (grid.firstChild) grid.removeChild(grid.firstChild);
 
   for (var i = 0; i < navItems.length; i++) {
@@ -136,25 +179,21 @@ function renderNav() {
     a.target = '_blank';
     a.rel = 'noopener';
 
-    // 图标
     var iconDiv = document.createElement('div');
     iconDiv.className = 'nav-icon';
     iconDiv.appendChild(createIconNode(item.icon));
     a.appendChild(iconDiv);
 
-    // 名称
     var nameSpan = document.createElement('span');
     nameSpan.className = 'nav-name';
     nameSpan.textContent = item.name;
     a.appendChild(nameSpan);
 
-    // URL 提示气泡
     var tip = document.createElement('span');
     tip.className = 'nav-url-tip';
     tip.textContent = effUrl;
     a.appendChild(tip);
 
-    // 内网徽章
     if (hasLan) {
       var badge = document.createElement('span');
       badge.className = 'nav-lan-badge';
@@ -165,7 +204,6 @@ function renderNav() {
     grid.appendChild(a);
   }
 }
-renderNav();
 
 // ===== 必应每日一图 =====
 (function loadBingBg() {
@@ -181,73 +219,27 @@ renderNav();
     .catch(function() { /* CSS fallback */ });
 })();
 
-// ===== 密码管理 =====
-var DEFAULT_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // SHA-256("admin")
-
-function hashPassword(pwd) {
-  try {
-    var enc = new TextEncoder().encode(pwd);
-    return crypto.subtle.digest('SHA-256', enc).then(function(hash) {
-      var arr = Array.from(new Uint8Array(hash));
-      return arr.map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
-    }).catch(function(err) {
-      console.error('crypto.subtle failed:', err);
-      // 回退：简单哈希
-      return simpleHash(pwd);
-    });
-  } catch(e) {
-    console.error('hashPassword error:', e);
-    return Promise.resolve(simpleHash(pwd));
-  }
-}
-
-function simpleHash(s) {
-  var h = 0;
-  for (var i = 0; i < s.length; i++) {
-    h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-  }
-  return 'fallback_' + Math.abs(h).toString(16);
-}
-
-function getStoredHash() { return localStorage.getItem('adminPasswordHash'); }
-
-// 首次使用自动设置默认密码 admin
-function ensurePasswordExists() {
-  if (!getStoredHash()) {
-    localStorage.setItem('adminPasswordHash', DEFAULT_HASH);
-  }
-}
-ensurePasswordExists();
-
-function verifyPassword(pwd) {
-  var stored = getStoredHash();
-  // 优先检查默认密码（无论 stored 是什么）
-  if (pwd === 'admin' && stored === DEFAULT_HASH) return Promise.resolve(true);
-  if (!stored) return Promise.resolve(true);
-  return hashPassword(pwd).then(function(h) { return h === stored; });
-}
-
-function setPassword(pwd) {
-  return hashPassword(pwd).then(function(h) {
-    localStorage.setItem('adminPasswordHash', h);
-  });
-}
-
 // ===== 弹窗控制 =====
 function openAdminDialog() {
   document.getElementById('overlay').classList.add('show');
   document.getElementById('login-error').classList.remove('show');
   document.getElementById('pwd-input').value = '';
+  var emailInput = document.getElementById('email-input');
+  if (emailInput) emailInput.value = '';
 
   document.getElementById('login-form').style.display = 'block';
   document.getElementById('admin-panel').style.display = 'none';
 
-  if (getStoredHash() === DEFAULT_HASH) {
-    document.getElementById('login-msg').textContent = '默认密码：admin（登录后请修改）';
+  if (API.isLoggedIn()) {
+    // 已登录直接进管理面板
+    showAdminPanel();
   } else {
-    document.getElementById('login-msg').textContent = '请输入管理密码';
+    document.getElementById('login-msg').textContent = '默认账号：admin@localhost / admin';
+    setTimeout(function() {
+      var el = document.getElementById('email-input');
+      if (el) el.focus();
+    }, 150);
   }
-  setTimeout(function() { document.getElementById('pwd-input').focus(); }, 150);
 }
 
 function closeDialog() {
@@ -256,29 +248,111 @@ function closeDialog() {
 
 // ===== 登录 =====
 function doLogin() {
+  var emailInput = document.getElementById('email-input');
+  var email = emailInput ? emailInput.value.trim() : 'admin@localhost';
   var pwd = document.getElementById('pwd-input').value;
-  if (!pwd) return;
 
-  verifyPassword(pwd).then(function(ok) {
-    if (ok) {
-      document.getElementById('login-error').classList.remove('show');
-      showAdminPanel();
-    } else {
-      document.getElementById('login-error').classList.add('show');
-      document.getElementById('pwd-input').value = '';
-      document.getElementById('pwd-input').focus();
+  if (!email || !pwd) {
+    document.getElementById('login-error').textContent = '请输入邮箱和密码';
+    document.getElementById('login-error').classList.add('show');
+    return;
+  }
+
+  API.login(email, pwd).then(function(data) {
+    API.setToken(data.token);
+    document.getElementById('login-error').classList.remove('show');
+
+    // 加载服务器数据
+    return API.getData();
+  }).then(function(data) {
+    if (data.settings && Object.keys(data.settings).length > 0) {
+      settings.title = data.settings.title || settings.title;
+      settings.footer = data.settings.footer || settings.footer;
+      settings.networkMode = data.settings.networkMode || settings.networkMode;
     }
+    if (data.navItems && data.navItems.length > 0) {
+      navItems = data.navItems;
+    }
+    if (data.iconCache) {
+      serverIconCache = data.iconCache;
+    }
+    applySettings();
+    renderNav();
+
+    // 检测 localStorage 是否有旧数据需要导入
+    var hasLocalSettings = !!localStorage.getItem('siteSettings');
+    var hasLocalNav = !!localStorage.getItem('navItems');
+    if (hasLocalSettings || hasLocalNav) {
+      showImportPrompt();
+    }
+
+    showAdminPanel();
   }).catch(function(err) {
-    console.error('Login error:', err);
-    // 哈希失败时允许 admin 进入
-    if (pwd === 'admin') {
-      showAdminPanel();
-    } else {
-      document.getElementById('login-error').classList.add('show');
-      document.getElementById('login-error').textContent = '登录失败，请重试';
-    }
+    document.getElementById('login-error').textContent = err.message || '登录失败';
+    document.getElementById('login-error').classList.add('show');
+    document.getElementById('pwd-input').value = '';
+    document.getElementById('pwd-input').focus();
   });
 }
+
+// 数据迁移提示
+function showImportPrompt() {
+  // 避免重复显示
+  if (document.getElementById('import-banner')) return;
+
+  var banner = document.createElement('div');
+  banner.id = 'import-banner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:1002;' +
+    'background:rgba(255,180,60,0.15);border-bottom:1px solid rgba(255,180,60,0.3);' +
+    'padding:10px 20px;display:flex;align-items:center;justify-content:center;gap:16px;' +
+    'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);';
+  banner.innerHTML = '<span style="color:rgba(255,255,255,0.8);font-size:14px;">检测到本地存储数据，要导入到服务器吗？</span>' +
+    '<button onclick="doImport()" style="padding:6px 16px;background:rgba(255,180,60,0.3);border:1px solid rgba(255,180,60,0.5);color:#fff;border-radius:6px;cursor:pointer;font-size:13px;">导入</button>' +
+    '<button onclick="dismissImport()" style="padding:6px 16px;background:transparent;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);border-radius:6px;cursor:pointer;font-size:13px;">忽略</button>';
+  document.body.prepend(banner);
+}
+
+function doImport() {
+  var lsSettings = JSON.parse(localStorage.getItem('siteSettings') || '{}');
+  var lsNavItems = JSON.parse(localStorage.getItem('navItems') || '[]');
+  var lsIconCache = localStorage.getItem('hdIconsCache');
+  var importData = {
+    settings: lsSettings,
+    navItems: lsNavItems,
+    iconCache: lsIconCache ? JSON.parse(lsIconCache) : null
+  };
+
+  API.importData(importData).then(function() {
+    if (lsSettings && Object.keys(lsSettings).length > 0) {
+      settings.title = lsSettings.title || settings.title;
+      settings.footer = lsSettings.footer || settings.footer;
+      settings.networkMode = lsSettings.networkMode || settings.networkMode;
+    }
+    if (lsNavItems.length > 0) navItems = lsNavItems;
+    if (importData.iconCache) serverIconCache = importData.iconCache;
+    applySettings();
+    renderNav();
+    // 清除已导入的 localStorage
+    localStorage.removeItem('siteSettings');
+    localStorage.removeItem('navItems');
+    localStorage.removeItem('hdIconsCache');
+    localStorage.removeItem('adminPasswordHash');
+    dismissImport();
+  }).catch(function(err) {
+    alert('导入失败: ' + err.message);
+  });
+}
+
+function dismissImport() {
+  var banner = document.getElementById('import-banner');
+  if (banner) banner.remove();
+}
+
+// 监听认证过期事件
+window.addEventListener('auth-expired', function() {
+  closeDialog();
+  alert('登录已过期，请重新登录');
+});
 
 function showAdminPanel() {
   document.getElementById('login-form').style.display = 'none';
@@ -290,10 +364,11 @@ function showAdminPanel() {
   document.getElementById('setting-footer').value = settings.footer;
 
   // 清空密码修改表单
+  document.getElementById('old-pwd').value = '';
   document.getElementById('new-pwd').value = '';
   document.getElementById('new-pwd2').value = '';
-  document.getElementById('pwd-change-msg').textContent = '';
-  document.getElementById('pwd-change-msg').className = 'pwd-change-msg';
+  var msgEl = document.getElementById('pwd-change-msg');
+  if (msgEl) { msgEl.textContent = ''; msgEl.className = 'pwd-change-msg'; }
 
   editItems = navItems.map(function(item) {
     return { name: item.name, url: item.url, icon: item.icon, lanUrl: item.lanUrl || '' };
@@ -317,16 +392,27 @@ function saveAll() {
   var footerVal = document.getElementById('setting-footer').value.trim();
   settings.title = titleVal || '我的导航页';
   settings.footer = footerVal || settings.title;
-  localStorage.setItem('siteSettings', JSON.stringify(settings));
 
   if (typeof editItems !== 'undefined') {
     navItems = editItems.filter(function(item) { return item.name.trim() || item.url.trim(); });
-    localStorage.setItem('navItems', JSON.stringify(navItems));
   }
 
-  applySettings();
-  renderNav();
-  closeDialog();
+  if (API.isLoggedIn()) {
+    API.saveAll(settings, navItems).then(function() {
+      applySettings();
+      renderNav();
+      closeDialog();
+    }).catch(function(err) {
+      alert('保存失败: ' + err.message);
+    });
+  } else {
+    // 离线模式回退 localStorage
+    localStorage.setItem('siteSettings', JSON.stringify(settings));
+    localStorage.setItem('navItems', JSON.stringify(navItems));
+    applySettings();
+    renderNav();
+    closeDialog();
+  }
 }
 
 // ===== 导航编辑 =====
@@ -342,20 +428,17 @@ function renderEditList() {
     var row = document.createElement('div');
     row.className = 'nav-edit-item';
 
-    // 图标预览
     var preview = document.createElement('div');
     preview.className = 'icon-preview';
     preview.appendChild(createIconNode(item.icon));
     row.appendChild(preview);
 
-    // 选择图标按钮
     var iconBtn = document.createElement('button');
     iconBtn.className = 'icon-btn';
     iconBtn.textContent = '选择图标';
     (function(idx) { iconBtn.onclick = function() { openIconPicker(idx); }; })(i);
     row.appendChild(iconBtn);
 
-    // 名称输入
     var nameInput = document.createElement('input');
     nameInput.className = 'name-input';
     nameInput.value = item.name;
@@ -363,11 +446,9 @@ function renderEditList() {
     (function(idx) { nameInput.onchange = function() { editItems[idx].name = this.value; }; })(i);
     row.appendChild(nameInput);
 
-    // URL 容器（双列并排）
     var urlContainer = document.createElement('div');
     urlContainer.className = 'nav-edit-urls';
 
-    // 外网地址列
     var col1 = document.createElement('div');
     col1.className = 'url-column';
     var urlInput = document.createElement('input');
@@ -382,7 +463,6 @@ function renderEditList() {
     col1.appendChild(label1);
     urlContainer.appendChild(col1);
 
-    // 内网地址列
     var col2 = document.createElement('div');
     col2.className = 'url-column';
     var lanInput = document.createElement('input');
@@ -399,7 +479,6 @@ function renderEditList() {
 
     row.appendChild(urlContainer);
 
-    // 删除按钮
     var delBtn = document.createElement('button');
     delBtn.className = 'del-btn';
     delBtn.innerHTML = '&#10005;';
@@ -416,19 +495,20 @@ function addNavItem() {
   renderEditList();
 }
 
-// ===== 修改密码（内联表单） =====
+// ===== 修改密码（通过服务器 API） =====
 function doChangePassword() {
+  var oldPwd = document.getElementById('old-pwd').value;
   var pwd1 = document.getElementById('new-pwd').value;
   var pwd2 = document.getElementById('new-pwd2').value;
   var msgEl = document.getElementById('pwd-change-msg');
 
-  if (!pwd1 || !pwd2) {
-    msgEl.textContent = '请填写密码';
+  if (!oldPwd || !pwd1 || !pwd2) {
+    msgEl.textContent = '请填写所有密码字段';
     msgEl.className = 'pwd-change-msg err';
     return;
   }
   if (pwd1.length < 4) {
-    msgEl.textContent = '密码至少4位';
+    msgEl.textContent = '新密码至少4位';
     msgEl.className = 'pwd-change-msg err';
     return;
   }
@@ -438,12 +518,16 @@ function doChangePassword() {
     return;
   }
 
-  setPassword(pwd1).then(function() {
+  API.changePassword(oldPwd, pwd1).then(function() {
     msgEl.textContent = '密码已更新';
     msgEl.className = 'pwd-change-msg ok';
+    document.getElementById('old-pwd').value = '';
     document.getElementById('new-pwd').value = '';
     document.getElementById('new-pwd2').value = '';
     setTimeout(function() { msgEl.textContent = ''; msgEl.className = 'pwd-change-msg'; }, 3000);
+  }).catch(function(err) {
+    msgEl.textContent = err.message || '密码修改失败';
+    msgEl.className = 'pwd-change-msg err';
   });
 }
 
@@ -457,6 +541,11 @@ var iconPageOffset = 0;
 var iconFilteredList = [];
 
 function loadIconCache() {
+  // 服务端缓存优先
+  if (serverIconCache && Date.now() - serverIconCache.time < 86400000) {
+    return { data: serverIconCache.data };
+  }
+  // 本地缓存兜底
   try {
     var raw = localStorage.getItem('hdIconsCache');
     if (raw) {
@@ -468,9 +557,14 @@ function loadIconCache() {
 }
 
 function saveIconCache(data) {
-  try {
-    localStorage.setItem('hdIconsCache', JSON.stringify({ time: Date.now(), data: data }));
-  } catch(e) {}
+  var cacheObj = { time: Date.now(), data: data };
+  serverIconCache = cacheObj;
+  // 异步保存到服务器
+  if (API.isLoggedIn()) {
+    API.saveIconCache(cacheObj).catch(function() {});
+  }
+  // 同时存 localStorage 作为离线备份
+  try { localStorage.setItem('hdIconsCache', JSON.stringify(cacheObj)); } catch(e) {}
 }
 
 function fetchIconList() {
@@ -620,7 +714,6 @@ function selectIcon(url) {
   closeIconPicker();
 }
 
-// 点击遮罩关闭图标选择器
 document.getElementById('icon-picker-overlay').addEventListener('click', function(e) {
   if (e.target === this) closeIconPicker();
 });

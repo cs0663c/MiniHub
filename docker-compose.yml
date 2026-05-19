@@ -2,11 +2,17 @@ version: "3.8"
 
 services:
   minihub:
-    # 方式一：拉取 GitHub 自动构建的镜像（推荐，无需本地构建）
     image: ghcr.io/cs0663c/minihub:latest
-    # 方式二：本地构建（取消注释下面两行，注释掉 image 行）
     # build: .
     container_name: minihub
     ports:
-      - "8080:80"
+      - "8080:8000"
+    volumes:
+      - minihub_data:/data
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DISABLE_REGISTRATION=${DISABLE_REGISTRATION:-false}
     restart: unless-stopped
+
+volumes:
+  minihub_data:
