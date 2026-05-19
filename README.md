@@ -135,7 +135,7 @@ python -c "from backend.app import create_app; create_app().run(debug=True)"
 | 数据库 | SQLite（WAL 模式） |
 | 认证 | bcrypt + JWT |
 | 部署 | Python:3.12-alpine + gunicorn |
-| 多平台 | `amd64` / `arm64` / `arm/v7` |
+| 多平台 | `amd64` / `arm64` |
 | 图标 | GitHub API + jsDelivr CDN |
 
 ## License
