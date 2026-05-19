@@ -26,9 +26,11 @@
 - **默认账号** — 首次启动自动创建 `admin@localhost` / `admin`
 
 ### 管理后台
+- **权限分级** — 管理员 / 子账户，管理员可创建子账户，子账户功能受限
+- **导航管理** — 登录默认显示，增删改导航项，外网/内网双地址并排编辑
 - **页面设置** — 自定义主页标题、页脚文字
-- **导航管理** — 增删改导航项，外网/内网双地址并排编辑
-- **密码修改** — 内联表单修改密码（需当前密码）
+- **账户管理** — 修改邮箱、修改密码（均需当前密码验证）
+- **退出登录** — 标题栏退出按钮，清除会话回到离线模式
 - **数据导入** — 登录后自动检测并导入旧 localStorage 数据
 
 ### 图标选择器
@@ -108,15 +110,18 @@ python -c "from backend.app import create_app; create_app().run(debug=True)"
 
 ## API 端点
 
-| 方法 | 路径 | 认证 | 说明 |
-|------|------|------|------|
-| POST | `/api/auth/login` | 无 | 登录，返回 JWT |
-| POST | `/api/auth/register` | 无 | 注册 |
-| PUT  | `/api/auth/password` | JWT | 修改密码 |
-| GET  | `/api/data/settings` | JWT | 获取全部用户数据 |
-| PUT  | `/api/data/save-all` | JWT | 批量保存 settings + navItems |
-| PUT  | `/api/data/settings` | JWT | 单独保存 settings |
-| POST | `/api/data/import` | JWT | 导入 localStorage 旧数据 |
+| 方法 | 路径 | 认证 | 权限 | 说明 |
+|------|------|------|------|------|
+| POST | `/api/auth/login` | 无 | - | 登录，返回 JWT + 用户信息 |
+| POST | `/api/auth/register` | 无 | - | 注册新账户 |
+| GET  | `/api/auth/me` | JWT | - | 验证令牌，获取当前用户 |
+| PUT  | `/api/auth/email` | JWT | - | 修改邮箱（需密码验证） |
+| PUT  | `/api/auth/password` | JWT | - | 修改密码（需当前密码） |
+| POST | `/api/auth/users` | JWT | 管理员 | 创建子账户 |
+| GET  | `/api/data/settings` | JWT | - | 获取全部用户数据 |
+| PUT  | `/api/data/save-all` | JWT | - | 批量保存 settings + navItems |
+| PUT  | `/api/data/settings` | JWT | - | 单独保存 settings |
+| POST | `/api/data/import` | JWT | - | 导入 localStorage 旧数据 |
 
 ## 环境变量
 
