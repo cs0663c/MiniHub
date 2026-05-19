@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="page-title">我的导航页</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23667eea'/%3E%3Crect x='28' y='8' width='8' height='48' rx='3' fill='%23fff'/%3E%3Cpath d='M36 14 L52 22 L36 30 Z' fill='%23fff'/%3E%3Ccircle cx='32' cy='12' r='4' fill='%23ffcc00'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -90,14 +91,15 @@
     <div id="admin-panel" style="display:none;flex-direction:column;flex:1;min-height:0;">
       <div class="dialog-header">
         <div class="tabs">
-          <button class="tab-btn active" data-tab="settings" onclick="switchTab('settings')">页面设置</button>
-          <button class="tab-btn" data-tab="nav" onclick="switchTab('nav')">导航管理</button>
+          <button class="tab-btn active" data-tab="nav" onclick="switchTab('nav')">导航管理</button>
+          <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">页面设置</button>
         </div>
+        <span class="user-badge" id="user-badge"></span>
         <button class="logout-btn" onclick="doLogout()" title="退出登录">退出</button>
         <button class="close-btn" onclick="closeDialog()">&times;</button>
       </div>
       <div class="dialog-body">
-        <div id="tab-settings">
+        <div id="tab-settings" style="display:none;">
           <div class="setting-group">
             <label>主页标题</label>
             <input id="setting-title" placeholder="我的导航页" maxlength="30">
@@ -125,7 +127,7 @@
               <span class="pwd-change-msg" id="pwd-change-msg"></span>
             </div>
           </div>
-          <div class="setting-group">
+          <div class="setting-group" id="create-user-group">
             <label>创建子账户</label>
             <div class="pwd-change-form">
               <input id="new-user-email" type="text" placeholder="子账户邮箱" maxlength="128" style="width:200px;">
@@ -136,7 +138,7 @@
           </div>
           <p class="tip" style="text-align:left;">修改后点击底部"保存全部"生效</p>
         </div>
-        <div id="tab-nav" style="display:none;">
+        <div id="tab-nav">
           <div id="edit-list"></div>
         </div>
       </div>

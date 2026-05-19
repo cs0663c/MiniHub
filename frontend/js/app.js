@@ -1,5 +1,6 @@
 // ===== 数据 =====
 var searchEngine = 'baidu';
+var currentUser = null;  // { id, email, is_admin }
 
 // 默认值（离线或未登录时使用）
 var DEFAULT_NAV = [
@@ -31,6 +32,12 @@ var serverIconCache = null;
 // ===== 初始化 =====
 (function initApp() {
   if (API.isLoggedIn()) {
+    // 从 token 解码用户信息（base64 中间段）
+    try {
+      var token = API.getToken();
+      var payload = JSON.parse(atob(token.split('.')[1]));
+      currentUser = { id: payload.sub, email: payload.email, is_admin: payload.is_admin };
+    } catch(e) { currentUser = null; }
     loadUserData();
   } else {
     // 未登录：尝试从 localStorage 加载旧数据
@@ -251,6 +258,7 @@ function closeDialog() {
 // ===== 退出 =====
 function doLogout() {
   API.logout();
+  currentUser = null;
   closeDialog();
   // 清除内存数据，回到离线默认
   navItems = DEFAULT_NAV.map(function(item) {
@@ -294,6 +302,7 @@ function doRegister() {
 
   API.register(email, pwd).then(function(data) {
     API.setToken(data.token);
+    currentUser = data.user;
     errEl.style.display = 'none';
     return API.getData();
   }).then(function(data) {
@@ -327,6 +336,7 @@ function doLogin() {
 
   API.login(email, pwd).then(function(data) {
     API.setToken(data.token);
+    currentUser = data.user;
     document.getElementById('login-error').classList.remove('show');
 
     // 加载服务器数据
@@ -423,9 +433,24 @@ window.addEventListener('auth-expired', function() {
 
 function showAdminPanel() {
   document.getElementById('login-form').style.display = 'none';
+  document.getElementById('register-form').style.display = 'none';
   var panel = document.getElementById('admin-panel');
   panel.style.display = 'flex';
   document.getElementById('login-error').classList.remove('show');
+
+  // 显示当前用户名
+  var badge = document.getElementById('user-badge');
+  if (currentUser) {
+    badge.textContent = currentUser.email + (currentUser.is_admin ? ' (管理)' : '');
+  } else {
+    badge.textContent = '';
+  }
+
+  // 管理员才能看到创建子账户
+  var createUserGroup = document.getElementById('create-user-group');
+  if (createUserGroup) {
+    createUserGroup.style.display = (currentUser && currentUser.is_admin) ? 'block' : 'none';
+  }
 
   document.getElementById('setting-title').value = settings.title;
   document.getElementById('setting-footer').value = settings.footer;
@@ -440,7 +465,7 @@ function showAdminPanel() {
   editItems = navItems.map(function(item) {
     return { name: item.name, url: item.url, icon: item.icon, lanUrl: item.lanUrl || '' };
   });
-  switchTab('settings');
+  switchTab('nav');
 }
 
 // ===== Tab 切换 =====
