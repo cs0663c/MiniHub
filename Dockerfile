@@ -18,4 +18,4 @@ EXPOSE 8000
 
 VOLUME ["/data"]
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120", "backend.app:create_app()"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--preload", "--timeout", "120", "backend.app:create_app()"]
