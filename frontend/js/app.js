@@ -4,22 +4,23 @@ var currentUser = null;  // { id, email, is_admin }
 
 // 默认值（离线或未登录时使用）
 var DEFAULT_NAV = [
-  { name: 'GitHub',  url: 'https://github.com',              icon: '🐙', lanUrl: '' },
-  { name: '百度',    url: 'https://baidu.com',               icon: '🔍', lanUrl: '' },
-  { name: 'B站',     url: 'https://bilibili.com',            icon: '📺', lanUrl: '' },
-  { name: '知乎',    url: 'https://zhihu.com',               icon: '💡', lanUrl: '' },
-  { name: '掘金',    url: 'https://juejin.cn',               icon: '📰', lanUrl: '' },
-  { name: 'V2EX',    url: 'https://v2ex.com',                icon: '💬', lanUrl: '' },
-  { name: 'MDN',     url: 'https://developer.mozilla.org',   icon: '📘', lanUrl: '' },
-  { name: 'Stack Overflow', url: 'https://stackoverflow.com', icon: '📚', lanUrl: '' },
-  { name: 'Gmail',   url: 'https://mail.google.com',         icon: '📧', lanUrl: '' },
-  { name: 'YouTube', url: 'https://youtube.com',             icon: '🎬', lanUrl: '' },
+  { name: 'GitHub',  url: 'https://github.com',              icon: '🐙', lanUrl: '', group: '开发' },
+  { name: '百度',    url: 'https://baidu.com',               icon: '🔍', lanUrl: '', group: '搜索' },
+  { name: 'B站',     url: 'https://bilibili.com',            icon: '📺', lanUrl: '', group: '娱乐' },
+  { name: '知乎',    url: 'https://zhihu.com',               icon: '💡', lanUrl: '', group: '社区' },
+  { name: '掘金',    url: 'https://juejin.cn',               icon: '📰', lanUrl: '', group: '开发' },
+  { name: 'V2EX',    url: 'https://v2ex.com',                icon: '💬', lanUrl: '', group: '社区' },
+  { name: 'MDN',     url: 'https://developer.mozilla.org',   icon: '📘', lanUrl: '', group: '开发' },
+  { name: 'Stack Overflow', url: 'https://stackoverflow.com', icon: '📚', lanUrl: '', group: '开发' },
+  { name: 'Gmail',   url: 'https://mail.google.com',         icon: '📧', lanUrl: '', group: '工具' },
+  { name: 'YouTube', url: 'https://youtube.com',             icon: '🎬', lanUrl: '', group: '娱乐' },
 ];
 
 var settings = JSON.parse(localStorage.getItem('siteSettings')) || {
   title: '我的导航页',
   footer: '我的导航页',
-  networkMode: 'wan'
+  networkMode: 'wan',
+  columns: 6
 };
 
 var navItems = DEFAULT_NAV.map(function(item) {
@@ -45,6 +46,7 @@ var serverIconCache = null;
     if (rawNav) {
       rawNav.forEach(function(item) {
         if (item.lanUrl === undefined) item.lanUrl = '';
+        if (item.group === undefined) item.group = '';
         delete item.isLan;
       });
       navItems = rawNav;
@@ -61,6 +63,7 @@ function loadUserData() {
       settings.title = data.settings.title || settings.title;
       settings.footer = data.settings.footer || settings.footer;
       settings.networkMode = data.settings.networkMode || settings.networkMode;
+      settings.columns = data.settings.columns || settings.columns;
     }
     if (data.navItems && data.navItems.length > 0) {
       navItems = data.navItems;
@@ -173,8 +176,25 @@ function renderNav() {
   var grid = document.getElementById('nav-grid');
   while (grid.firstChild) grid.removeChild(grid.firstChild);
 
+  // 按 group 分组
+  var groups = {};
+  var noGroup = [];
   for (var i = 0; i < navItems.length; i++) {
-    var item = navItems[i];
+    var g = navItems[i].group;
+    if (g && g.trim()) {
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(navItems[i]);
+    } else {
+      noGroup.push(navItems[i]);
+    }
+  }
+  var groupNames = Object.keys(groups);
+
+  // 应用列数设置
+  var cols = settings.columns || 6;
+  grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+
+  function createItem(item) {
     var effUrl = sanitizeUrl(getEffectiveUrl(item));
     var hasLan = !!(item.lanUrl && item.lanUrl.trim());
     var isLanMode = settings.networkMode === 'lan';
@@ -207,8 +227,33 @@ function renderNav() {
       badge.textContent = isLanMode ? '内网' : '双栈';
       a.appendChild(badge);
     }
+    return a;
+  }
 
-    grid.appendChild(a);
+  function createGroupHeader(name) {
+    var h = document.createElement('div');
+    h.className = 'nav-group-header';
+    h.textContent = name;
+    return h;
+  }
+
+  // 先渲染有分组的
+  for (var g = 0; g < groupNames.length; g++) {
+    var gName = groupNames[g];
+    grid.appendChild(createGroupHeader(gName));
+    var items = groups[gName];
+    for (var j = 0; j < items.length; j++) {
+      grid.appendChild(createItem(items[j]));
+    }
+  }
+  // 再渲染无分组的
+  if (noGroup.length > 0) {
+    if (groupNames.length > 0) {
+      grid.appendChild(createGroupHeader('其他'));
+    }
+    for (var k = 0; k < noGroup.length; k++) {
+      grid.appendChild(createItem(noGroup[k]));
+    }
   }
 }
 
@@ -346,6 +391,7 @@ function doLogin() {
       settings.title = data.settings.title || settings.title;
       settings.footer = data.settings.footer || settings.footer;
       settings.networkMode = data.settings.networkMode || settings.networkMode;
+      settings.columns = data.settings.columns || settings.columns;
     }
     if (data.navItems && data.navItems.length > 0) {
       navItems = data.navItems;
@@ -454,6 +500,7 @@ function showAdminPanel() {
 
   document.getElementById('setting-title').value = settings.title;
   document.getElementById('setting-footer').value = settings.footer;
+  document.getElementById('setting-columns').value = settings.columns || 6;
 
   // 清空密码修改表单
   document.getElementById('old-pwd').value = '';
@@ -463,7 +510,7 @@ function showAdminPanel() {
   if (msgEl) { msgEl.textContent = ''; msgEl.className = 'pwd-change-msg'; }
 
   editItems = navItems.map(function(item) {
-    return { name: item.name, url: item.url, icon: item.icon, lanUrl: item.lanUrl || '' };
+    return { name: item.name, url: item.url, icon: item.icon, lanUrl: item.lanUrl || '', group: item.group || '' };
   });
   switchTab('nav');
 }
@@ -482,8 +529,10 @@ function switchTab(tab) {
 function saveAll() {
   var titleVal = document.getElementById('setting-title').value.trim();
   var footerVal = document.getElementById('setting-footer').value.trim();
+  var colsVal = parseInt(document.getElementById('setting-columns').value) || 6;
   settings.title = titleVal || '我的导航页';
   settings.footer = footerVal || settings.title;
+  settings.columns = Math.min(10, Math.max(3, colsVal));
 
   if (typeof editItems !== 'undefined') {
     navItems = editItems.filter(function(item) { return item.name.trim() || item.url.trim(); });
@@ -510,6 +559,9 @@ function saveAll() {
 // ===== 导航编辑 =====
 var editItems = [];
 
+// 拖拽排序
+var dragIdx = -1;
+
 function renderEditList() {
   var list = document.getElementById('edit-list');
   while (list.firstChild) list.removeChild(list.firstChild);
@@ -519,6 +571,30 @@ function renderEditList() {
 
     var row = document.createElement('div');
     row.className = 'nav-edit-item';
+    row.draggable = true;
+    row.dataset.idx = i;
+    row.ondragstart = function(e) { dragIdx = parseInt(this.dataset.idx); this.style.opacity = '0.5'; };
+    row.ondragend = function(e) { this.style.opacity = '1'; };
+    row.ondragover = function(e) { e.preventDefault(); this.style.borderTop = '2px solid rgba(130,130,255,0.5)'; };
+    row.ondragleave = function(e) { this.style.borderTop = ''; };
+    row.ondrop = function(e) {
+      e.preventDefault();
+      this.style.borderTop = '';
+      var toIdx = parseInt(this.dataset.idx);
+      if (dragIdx >= 0 && dragIdx !== toIdx) {
+        var moved = editItems.splice(dragIdx, 1)[0];
+        editItems.splice(toIdx, 0, moved);
+        renderEditList();
+      }
+      dragIdx = -1;
+    };
+
+    // 拖拽手柄
+    var handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.innerHTML = '&#9776;';
+    handle.title = '拖拽排序';
+    row.appendChild(handle);
 
     var preview = document.createElement('div');
     preview.className = 'icon-preview';
@@ -537,6 +613,14 @@ function renderEditList() {
     nameInput.placeholder = '名称';
     (function(idx) { nameInput.onchange = function() { editItems[idx].name = this.value; }; })(i);
     row.appendChild(nameInput);
+
+    // 分组输入
+    var groupInput = document.createElement('input');
+    groupInput.className = 'group-input';
+    groupInput.value = item.group || '';
+    groupInput.placeholder = '分组';
+    (function(idx) { groupInput.onchange = function() { editItems[idx].group = this.value; }; })(i);
+    row.appendChild(groupInput);
 
     var urlContainer = document.createElement('div');
     urlContainer.className = 'nav-edit-urls';
@@ -582,7 +666,7 @@ function renderEditList() {
 }
 
 function addNavItem() {
-  editItems.push({ name: '', url: 'https://', icon: '🔗', lanUrl: '' });
+  editItems.push({ name: '', url: 'https://', icon: '🔗', lanUrl: '', group: '' });
   switchTab('nav');
   renderEditList();
 }
@@ -641,6 +725,8 @@ function doChangeEmail() {
   }
 
   API.changeEmail(pwd, newEmail).then(function(data) {
+    if (currentUser) currentUser.email = data.email;
+    document.getElementById('user-badge').textContent = (currentUser ? data.email : '') + (currentUser && currentUser.is_admin ? ' (管理)' : '');
     msgEl.textContent = '邮箱已更新：' + data.email;
     msgEl.className = 'pwd-change-msg ok';
     document.getElementById('email-pwd').value = '';

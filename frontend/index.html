@@ -13,16 +13,6 @@
 <div class="main-card">
   <div class="page-heading" id="page-heading">我的导航页</div>
 
-  <!-- 网络模式切换 -->
-  <div class="netmode-row">
-    <span class="netmode-label">当前网络：</span>
-    <label class="netmode-toggle" id="netmode-toggle" title="切换内外网访问地址">
-      <input type="checkbox" id="netmode-cb" onchange="toggleNetworkMode()">
-      <span class="netmode-switch"></span>
-      <span class="netmode-text" id="netmode-text">外网</span>
-    </label>
-  </div>
-
   <div class="clock-area">
     <div id="time">00:00:00</div>
     <div id="date"></div>
@@ -52,6 +42,13 @@
   <div>&copy; <span id="footer-year"></span> <span id="footer-title">我的导航页</span></div>
   <div id="copyright-info"></div>
 </footer>
+
+<!-- ===== 网络模式切换 ===== -->
+<label class="netmode-float" title="切换内外网访问地址">
+  <input type="checkbox" id="netmode-cb" onchange="toggleNetworkMode()">
+  <span class="netmode-switch"></span>
+  <span class="netmode-text" id="netmode-text">外网</span>
+</label>
 
 <!-- ===== 管理按钮 ===== -->
 <button class="admin-toggle" onclick="openAdminDialog()" title="管理">&#9881;</button>
@@ -107,6 +104,10 @@
           <div class="setting-group">
             <label>页脚文字</label>
             <input id="setting-footer" placeholder="我的导航页" maxlength="40">
+          </div>
+          <div class="setting-group">
+            <label>导航每行列数（3~10）</label>
+            <input id="setting-columns" type="number" min="3" max="10" placeholder="6">
           </div>
           <div class="setting-group">
             <label>修改邮箱</label>

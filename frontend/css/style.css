@@ -34,48 +34,52 @@ body::before {
   flex: 1;
 }
 
-/* ===== 网络模式切换 ===== */
-.netmode-row {
+/* ===== 网络模式浮窗（右下角） ===== */
+.netmode-float {
+  position: fixed;
+  bottom: 80px; right: 24px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 28px;
-}
-.netmode-label { font-size: 13px; color: rgba(255,255,255,0.4); }
-.netmode-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
   cursor: pointer;
   user-select: none;
+  z-index: 100;
+  transition: background 0.3s;
 }
-.netmode-toggle input { display: none; }
+.netmode-float:hover { background: rgba(0,0,0,0.6); }
+.netmode-float input { display: none; }
 .netmode-switch {
-  width: 40px; height: 22px;
-  border-radius: 11px;
+  width: 36px; height: 20px;
+  border-radius: 10px;
   background: rgba(102,126,234,0.5);
   position: relative;
   transition: background 0.3s;
+  flex-shrink: 0;
 }
 .netmode-switch::after {
   content: '';
   position: absolute;
   top: 2px; left: 2px;
-  width: 18px; height: 18px;
+  width: 16px; height: 16px;
   border-radius: 50%;
   background: #fff;
   transition: transform 0.3s;
 }
-.netmode-toggle input:checked + .netmode-switch {
+.netmode-float input:checked + .netmode-switch {
   background: rgba(255,180,60,0.6);
 }
-.netmode-toggle input:checked + .netmode-switch::after {
-  transform: translateX(18px);
+.netmode-float input:checked + .netmode-switch::after {
+  transform: translateX(16px);
 }
 .netmode-text {
-  font-size: 13px;
-  color: rgba(255,255,255,0.7);
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
   min-width: 2em;
 }
 
@@ -174,9 +178,19 @@ body::before {
   grid-template-columns: repeat(6, 1fr);
   gap: 12px;
 }
-@media (min-width: 1200px) { .nav-grid { grid-template-columns: repeat(8, 1fr); } }
-@media (max-width: 800px)  { .nav-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 480px)  { .nav-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.nav-group-header {
+  grid-column: 1 / -1;
+  font-size: 14px;
+  color: rgba(255,255,255,0.35);
+  padding: 8px 4px 4px;
+  margin-top: 12px;
+  letter-spacing: 2px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.nav-group-header:first-child { margin-top: 0; }
+@media (max-width: 800px)  { .nav-grid { grid-template-columns: repeat(4, 1fr) !important; } }
+@media (max-width: 480px)  { .nav-grid { grid-template-columns: repeat(3, 1fr) !important; } }
 .nav-item {
   display: flex;
   flex-direction: column;
@@ -521,6 +535,20 @@ body::before {
   flex-shrink: 0;
 }
 .nav-edit-item .icon-preview img { width: 100%; height: 100%; object-fit: contain; }
+.nav-edit-item .drag-handle {
+  color: rgba(255,255,255,0.2);
+  cursor: grab;
+  font-size: 16px;
+  padding: 0 2px;
+  flex-shrink: 0;
+  user-select: none;
+}
+.nav-edit-item .drag-handle:active { cursor: grabbing; }
+.nav-edit-item .group-input {
+  width: 70px !important;
+  min-width: auto !important;
+  text-align: center;
+}
 .nav-edit-item .del-btn {
   background: transparent;
   border: none;
